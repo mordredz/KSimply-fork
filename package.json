@@ -56,8 +56,6 @@
 		"@types/p5": "^1.7.6",
 		"lucide-svelte": "^0.525.0",
 		"p5": "^2.0.3",
-		"papaparse": "^5.5.3",
-		"sqlite": "^5.1.1",
-		"sqlite3": "^5.1.7"
+		"papaparse": "^5.5.3"
 	}
 }

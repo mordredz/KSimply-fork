@@ -8,17 +8,21 @@
 	// [EN] Style definitions for different analysis levels (Optimal, Possible, etc.).
 	// [IT] Definizioni di stile per i diversi livelli di analisi (Ottimale, Possibile, ecc.).
 	const levelStyles = {
-		Verde: {
+		optimal: {
 			borderColor: 'border-green-500',
 			textColor: 'text-green-300',
 			badgeBg: 'bg-green-500/20'
 		},
-		Giallo: {
+		possible: {
 			borderColor: 'border-amber-500',
 			textColor: 'text-amber-300',
 			badgeBg: 'bg-amber-500/20'
 		},
-		Rosso: { borderColor: 'border-red-600', textColor: 'text-red-400', badgeBg: 'bg-red-500/20' }
+		incompatible: {
+			borderColor: 'border-red-600',
+			textColor: 'text-red-400',
+			badgeBg: 'bg-red-500/20'
+		}
 	};
 	const currentStyle = levelStyles[result.level];
 
@@ -28,11 +32,11 @@
 	 */
 	function getLevelText(level: AnalysisLevel) {
 		switch (level) {
-			case 'Verde':
+			case 'optimal':
 				return m.card_level_optimal();
-			case 'Giallo':
+			case 'possible':
 				return m.card_level_possible();
-			case 'Rosso':
+			case 'incompatible':
 				return m.card_level_incompatible();
 		}
 	}

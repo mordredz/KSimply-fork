@@ -44,7 +44,9 @@ export interface RawDataPayload {
 	encoders: EncoderRelease[];
 	vaes: VaeRelease[];
 }
-export type AnalysisLevel = 'Verde' | 'Giallo' | 'Rosso';
+// [EN] Language-neutral compatibility levels. Display text is translated in the UI.
+// [IT] Livelli di compatibilità neutri rispetto alla lingua. Il testo mostrato è tradotto nella UI.
+export type AnalysisLevel = 'optimal' | 'possible' | 'incompatible';
 
 // [EN] Represents a translatable analysis note. `key` maps to a Paraglide message.
 // [IT] Rappresenta una nota di analisi traducibile. `key` mappa a un messaggio Paraglide.
@@ -92,7 +94,7 @@ type Champion = { result: AnalysisResult; score: number[] };
  * to find the best "Optimal" (Green) and "Possible" (Yellow) recommendation for each base model.
  * ---
  * [IT] La funzione di analisi principale. Itera attraverso tutte le possibili combinazioni di modelli
- * per trovare la migliore raccomandazione "Ottimale" (Verde) e "Possibile" (Gialla) per ogni modello base.
+ * per trovare la migliore raccomandazione "Ottimale" (optimal) e "Possibile" (possible) per ogni modello base.
  */
 export function analyzeHardware(
 	userHardware: UserHardware,
@@ -178,7 +180,7 @@ export function analyzeHardware(
 	const finalRecommendations: AnalysisResult[] = [];
 	for (const baseModel of baseModels) {
 		// [EN] "Champion" pattern: find the best result for each level (Green, Yellow).
-		// [IT] Pattern "Champion": trova il miglior risultato per ogni livello (Verde, Giallo).
+		// [IT] Pattern "Champion": trova il miglior risultato per ogni livello (optimal, possible).
 		let bestGreen: Champion | null = null;
 		let bestYellow: Champion | null = null;
 
@@ -215,23 +217,23 @@ export function analyzeHardware(
 					const modelCost = modelRelease.file_size_gb;
 					const totalVramCost = (modelCost + totalEncoderCost + vaeCost) * VRAM_BUFFER_PERCENTAGE;
 
-					let level: AnalysisLevel = 'Rosso';
+					let level: AnalysisLevel = 'incompatible';
 					let ramCostForLevel: number = RAM_BASE_OVERHEAD_GB;
 
 					// [EN] Determine compatibility level: Green (fits in VRAM), Yellow (fits with offload), or Red.
-					// [IT] Determina il livello di compatibilità: Verde (entra in VRAM), Giallo (entra con offload), o Rosso.
+					// [IT] Determina il livello di compatibilità: optimal (entra in VRAM), possible (entra con offload), o incompatible.
 					if (totalVramCost <= userVram) {
-						level = 'Verde';
+						level = 'optimal';
 					} else {
 						const vramToOffload = totalVramCost - userVram;
 						const requiredRamForOffload = vramToOffload + RAM_BASE_OVERHEAD_GB;
 						if (userRam >= requiredRamForOffload && vramToOffload <= maxOffloadRam) {
-							level = 'Giallo';
+							level = 'possible';
 							ramCostForLevel = requiredRamForOffload;
 						}
 					}
 
-					if (level === 'Rosso') continue;
+					if (level === 'incompatible') continue;
 
 					// [EN] Hierarchical score for comparing results: priority first, then quality, then cost.
 					// [IT] Punteggio gerarchico per confrontare i risultati: prima la priorità, poi la qualità, poi il costo.
@@ -281,7 +283,7 @@ export function analyzeHardware(
 
 					// [EN] Compare with the current champion and replace if better.
 					// [IT] Confronta con il campione attuale e sostituiscilo se è migliore.
-					const championToCompare: Champion | null = level === 'Verde' ? bestGreen : bestYellow;
+					const championToCompare: Champion | null = level === 'optimal' ? bestGreen : bestYellow;
 					let isBetter = false;
 					if (!championToCompare) {
 						isBetter = true;
@@ -299,7 +301,7 @@ export function analyzeHardware(
 
 					if (isBetter) {
 						const newChampion: Champion = { result: currentResult, score: hierarchicalScore };
-						if (level === 'Verde') bestGreen = newChampion;
+						if (level === 'optimal') bestGreen = newChampion;
 						else bestYellow = newChampion;
 					}
 				}
@@ -317,7 +319,7 @@ export function analyzeHardware(
 	// [EN] Post-process results to add context-specific notes.
 	// [IT] Post-elabora i risultati per aggiungere note specifiche al contesto.
 	finalRecommendations.forEach((r) => {
-		if (r.level === 'Verde') {
+		if (r.level === 'optimal') {
 			r.notes.push({ key: 'note_optimal_all_in_vram' });
 			r.notes.push({
 				key: 'note_optimal_vram_usage',
@@ -348,7 +350,7 @@ export function analyzeHardware(
 		const typeA = modelTypeOrder[a.modelType] ?? 99;
 		const typeB = modelTypeOrder[b.modelType] ?? 99;
 		if (typeA !== typeB) return typeA - typeB;
-		const levelOrder: Record<AnalysisLevel, number> = { Verde: 1, Giallo: 2, Rosso: 3 };
+		const levelOrder: Record<AnalysisLevel, number> = { optimal: 1, possible: 2, incompatible: 3 };
 		if (levelOrder[a.level] !== levelOrder[b.level])
 			return levelOrder[a.level] - levelOrder[b.level];
 		return b.quality - a.quality;

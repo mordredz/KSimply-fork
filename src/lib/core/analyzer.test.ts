@@ -55,23 +55,23 @@ function encoder(over: Partial<RawDataPayload['encoders'][number]> = {}): RawDat
 }
 
 describe('analyzeHardware', () => {
-	it('marks a recipe Verde when it fits entirely in VRAM', () => {
+	it('marks a recipe optimal when it fits entirely in VRAM', () => {
 		const data: RawDataPayload = { models: [model({ file_size_gb: 4 })], encoders: [], vaes: [] };
 		const results = analyzeHardware(hw(16), { vram_gb: 8 }, data);
 
 		expect(results).toHaveLength(1);
-		expect(results[0].level).toBe('Verde');
+		expect(results[0].level).toBe('optimal');
 		// 4 GB * 1.03 safety buffer
 		expect(results[0].totalVramCost).toBeCloseTo(4.12, 5);
 		expect(results[0].components.vaes).toEqual([]);
 	});
 
-	it('falls back to Giallo when the model needs RAM offload', () => {
+	it('falls back to possible when the model needs RAM offload', () => {
 		const data: RawDataPayload = { models: [model({ file_size_gb: 10 })], encoders: [], vaes: [] };
 		const results = analyzeHardware(hw(32), { vram_gb: 8 }, data);
 
 		expect(results).toHaveLength(1);
-		expect(results[0].level).toBe('Giallo');
+		expect(results[0].level).toBe('possible');
 	});
 
 	it('drops a recipe entirely when it fits neither VRAM nor RAM offload', () => {
@@ -128,7 +128,7 @@ describe('analyzeHardware', () => {
 		expect(results[0].totalVramCost).toBeCloseTo(7.21, 5);
 	});
 
-	it('prefers the higher-quality model release as the Verde champion', () => {
+	it('prefers the higher-quality model release as the optimal champion', () => {
 		const data: RawDataPayload = {
 			models: [
 				model({ id: 1, file_size_gb: 4, quantization_name: 'FP8', quality_score: 80, priority: 50 }),
@@ -140,9 +140,9 @@ describe('analyzeHardware', () => {
 		const results = analyzeHardware(hw(16), { vram_gb: 16 }, data);
 
 		// Both fit; the champion is chosen by priority then quality, so FP16 wins.
-		const verde = results.filter((r) => r.level === 'Verde');
-		expect(verde).toHaveLength(1);
-		expect(verde[0].quality).toBe(100);
-		expect(verde[0].recipeName).toContain('FP16');
+		const optimal = results.filter((r) => r.level === 'optimal');
+		expect(optimal).toHaveLength(1);
+		expect(optimal[0].quality).toBe(100);
+		expect(optimal[0].recipeName).toContain('FP16');
 	});
 });

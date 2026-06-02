@@ -46,7 +46,7 @@
 
 	// [EN] State for the active level filters (e.g., Optimal, Possible).
 	// [IT] Stato per i filtri di livello attivi (es. Ottimale, Possibile).
-	let activeLevelFilters = $state<Set<AnalysisLevel>>(new Set(['Verde', 'Giallo']));
+	let activeLevelFilters = $state<Set<AnalysisLevel>>(new Set(['optimal', 'possible']));
 	function toggleLevelFilter(level: AnalysisLevel) {
 		const newSet = new Set(activeLevelFilters);
 		if (newSet.has(level)) newSet.delete(level);
@@ -225,10 +225,10 @@
 				<div class="flex items-center gap-4 flex-wrap">
 					<span class="font-semibold text-secondary-text min-w-max">{m.filter_show()}</span>
 					<div class="flex gap-2 flex-wrap">
-						<button onclick={() => toggleLevelFilter('Verde')} class="{baseClass} {activeLevelFilters.has('Verde') ? 'bg-green-500 text-white font-bold ring-2 ring-green-300' : 'bg-surface hover:bg-border'}">
+						<button onclick={() => toggleLevelFilter('optimal')} class="{baseClass} {activeLevelFilters.has('optimal') ? 'bg-green-500 text-white font-bold ring-2 ring-green-300' : 'bg-surface hover:bg-border'}">
 							{m.filter_optimal()}
 						</button>
-						<button onclick={() => toggleLevelFilter('Giallo')} class="{baseClass} {activeLevelFilters.has('Giallo') ? 'bg-amber-500 text-white font-bold ring-2 ring-amber-300' : 'bg-surface hover:bg-border'}">
+						<button onclick={() => toggleLevelFilter('possible')} class="{baseClass} {activeLevelFilters.has('possible') ? 'bg-amber-500 text-white font-bold ring-2 ring-amber-300' : 'bg-surface hover:bg-border'}">
 							{m.filter_possible()}
 						</button>
 					</div>

@@ -2,7 +2,7 @@
 // [IT] Importa i plugin per Vite.
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [
@@ -51,5 +51,13 @@ export default defineConfig({
 	// [IT] Ottimizzazione delle dipendenze per Vite.
 	optimizeDeps: {
 		include: ['lucide-svelte']
+	},
+
+	// [EN] Vitest only runs unit tests under src/. End-to-end tests in e2e/ are
+	// driven by Playwright (see playwright.config.ts), not Vitest.
+	// [IT] Vitest esegue solo gli unit test sotto src/. I test end-to-end in e2e/
+	// sono gestiti da Playwright (vedi playwright.config.ts), non da Vitest.
+	test: {
+		include: ['src/**/*.{test,spec}.{js,ts}']
 	}
 });

@@ -43,6 +43,10 @@ const SCHEMA_STATEMENTS = [
 	`CREATE TABLE "vae_releases" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "vae_id" INTEGER NOT NULL, "quantization_id" INTEGER NOT NULL, "file_size_gb" REAL NOT NULL, "repository" TEXT, FOREIGN KEY(vae_id) REFERENCES vaes(id) ON DELETE CASCADE, FOREIGN KEY(quantization_id) REFERENCES quantizations(id) ON DELETE CASCADE);`
 ];
 
+// [EN] CSV sentinel meaning the component is bundled in the model (no separate file to link).
+// [IT] Segnaposto CSV: il componente è incluso nel modello (nessun file separato da collegare).
+const INCLUDED_IN_MODEL = '(Included in Model)';
+
 /**
  * [EN] A generic utility to parse a CSV file (from scripts/data) into an array of objects.
  * [IT] Una utility generica per parsare un file CSV (da scripts/data) in un array di oggetti.
@@ -176,20 +180,26 @@ export async function seedDatabase(db: Client): Promise<void> {
 				console.warn(`   -> ERRORE: Modello base "${comp.model_name}" non trovato!`);
 				continue;
 			}
-			for (const teName of comp.compatible_text_encoders.split('|')) {
-				const teId = nameToIdMaps['text_encoders'].get(teName.trim());
+			for (const rawName of comp.compatible_text_encoders.split('|')) {
+				const teName = rawName.trim();
+				// [EN] Sentinel: the encoder ships inside the model, so there is no separate row to link.
+				// [IT] Segnaposto: l'encoder è incluso nel modello, quindi non c'è una riga separata da collegare.
+				if (teName === INCLUDED_IN_MODEL) continue;
+				const teId = nameToIdMaps['text_encoders'].get(teName);
 				if (teId) {
 					await db.execute({ sql: 'INSERT OR IGNORE INTO model_encoder_compatibility (model_id, encoder_id) VALUES (?, ?)', args: [modelId, teId] });
 				} else {
-					console.warn(`   -> ERRORE: Text Encoder "${teName.trim()}" non trovato (modello "${comp.model_name}")!`);
+					console.warn(`   -> ERRORE: Text Encoder "${teName}" non trovato (modello "${comp.model_name}")!`);
 				}
 			}
-			for (const vaeName of comp.compatible_vaes.split('|')) {
-				const vaeId = nameToIdMaps['vaes'].get(vaeName.trim());
+			for (const rawName of comp.compatible_vaes.split('|')) {
+				const vaeName = rawName.trim();
+				if (vaeName === INCLUDED_IN_MODEL) continue;
+				const vaeId = nameToIdMaps['vaes'].get(vaeName);
 				if (vaeId) {
 					await db.execute({ sql: 'INSERT OR IGNORE INTO model_vae_compatibility (model_id, vae_id) VALUES (?, ?)', args: [modelId, vaeId] });
 				} else {
-					console.warn(`   -> ERRORE: VAE "${vaeName.trim()}" non trovato (modello "${comp.model_name}")!`);
+					console.warn(`   -> ERRORE: VAE "${vaeName}" non trovato (modello "${comp.model_name}")!`);
 				}
 			}
 		}

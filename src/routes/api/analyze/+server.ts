@@ -1,4 +1,4 @@
-// src/routes/+server.ts
+// src/routes/api/analyze/+server.ts
 
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
@@ -84,7 +84,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		return json({ success: true, gpu: gpuInfo, analysis: analysisResults });
 	} catch (error) {
-		console.error("[API /] Errore catturato durante l'analisi:", error);
+		console.error("[API /api/analyze] Errore catturato durante l'analisi:", error);
 		return json({ success: false, message: 'Errore interno del server' }, { status: 500 });
 	}
 };

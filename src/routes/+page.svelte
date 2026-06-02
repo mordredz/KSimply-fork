@@ -41,6 +41,7 @@
 	let isLoading = $state(false);
 	let analysisResults = $state<AnalysisResult[]>([]);
 	let analysisPerformed = $state(false);
+	let analysisError = $state(false);
 	let progressPercent = $state(0);
 
 	// [EN] State for the active level filters (e.g., Optimal, Possible).
@@ -99,6 +100,7 @@
 		}
 		isLoading = true;
 		analysisPerformed = true;
+		analysisError = false;
 		analysisResults = [];
 		activeTypeFilters = new Set();
 		progressPercent = 10;
@@ -121,6 +123,7 @@
 			setTimeout(() => (isLoading = false), 500);
 		} catch (error) {
 			console.error('Errore catturato nel frontend:', error);
+			analysisError = true;
 			isLoading = false;
 		}
 	}
@@ -276,6 +279,13 @@
 				{#each filteredResults as result (result.id)}
 					<div in:fly={{ y: 20, duration: 500 }}><ResultCard {result} /></div>
 				{/each}
+			</div>
+		{:else if analysisError}
+			<!-- [EN] Message displayed when the analysis request itself failed (network/server). -->
+			<!-- [IT] Messaggio visualizzato quando la richiesta di analisi stessa è fallita (rete/server). -->
+			<div class="text-center bg-surface border border-red-600/60 p-8 rounded-2xl">
+				<h3 class="text-2xl font-bold text-red-400">{m.analysis_error_title()}</h3>
+				<p class="mt-2 text-secondary-text">{m.analysis_error_subtitle()}</p>
 			</div>
 		{:else if analysisPerformed}
 			<!-- [EN] Message displayed when analysis is done but yields no compatible models. -->

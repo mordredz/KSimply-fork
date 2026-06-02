@@ -1,5 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "analysis_error_title": "分析出错",
+  "analysis_error_subtitle": "分析过程中出现问题。请检查您的网络连接后重试。",
   "app_title": "KSimply",
   "app_subtitle": "输入您的电脑规格，发现您在开源生成式人工智能世界中的潜力。",
   "gpu_label": "选择您的GPU",

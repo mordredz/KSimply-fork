@@ -1,5 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "analysis_error_title": "Error en el Análisis",
+  "analysis_error_subtitle": "Algo salió mal durante el análisis. Comprueba tu conexión e inténtalo de nuevo.",
   "app_title": "KSimply",
   "app_subtitle": "Introduce las especificaciones de tu PC para descubrir tu potencial en el mundo de la IA generativa de código abierto.",
   "gpu_label": "Selecciona tu GPU",

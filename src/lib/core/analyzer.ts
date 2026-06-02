@@ -3,22 +3,80 @@ import type { UserHardware } from './types';
 // --- INTERFACES ---
 // [EN] Raw data structures mapping directly to the database schema.
 // [IT] Strutture dati grezze che mappano direttamente lo schema del database.
-interface ModelRelease { id: number; model_id: number; quantization_id: number; file_size_gb: number; model_name: string; model_type: string; quantization_name: string; quality_score: number; priority: number; repository: string; }
-interface EncoderRelease { id: number; encoder_id: number; quantization_id: number; file_size_gb: number; encoder_name: string; quantization_name: string; quality_score: number; priority: number; compatible_with_model_id: number; repository: string; }
-interface VaeRelease { id: number; vae_id: number; quantization_id: number; file_size_gb: number; vae_name: string; quantization_name: string; quality_score: number; priority: number; compatible_with_model_id: number; repository: string; }
-export interface RawDataPayload { models: ModelRelease[]; encoders: EncoderRelease[]; vaes: VaeRelease[]; }
+interface ModelRelease {
+	id: number;
+	model_id: number;
+	quantization_id: number;
+	file_size_gb: number;
+	model_name: string;
+	model_type: string;
+	quantization_name: string;
+	quality_score: number;
+	priority: number;
+	repository: string;
+}
+interface EncoderRelease {
+	id: number;
+	encoder_id: number;
+	quantization_id: number;
+	file_size_gb: number;
+	encoder_name: string;
+	quantization_name: string;
+	quality_score: number;
+	priority: number;
+	compatible_with_model_id: number;
+	repository: string;
+}
+interface VaeRelease {
+	id: number;
+	vae_id: number;
+	quantization_id: number;
+	file_size_gb: number;
+	vae_name: string;
+	quantization_name: string;
+	quality_score: number;
+	priority: number;
+	compatible_with_model_id: number;
+	repository: string;
+}
+export interface RawDataPayload {
+	models: ModelRelease[];
+	encoders: EncoderRelease[];
+	vaes: VaeRelease[];
+}
 export type AnalysisLevel = 'Verde' | 'Giallo' | 'Rosso';
 
 // [EN] Represents a translatable analysis note. `key` maps to a Paraglide message.
 // [IT] Rappresenta una nota di analisi traducibile. `key` mappa a un messaggio Paraglide.
 export interface AnalysisNote {
-	key: 'note_optimal_all_in_vram' | 'note_optimal_vram_usage' | 'note_possible_offload' | 'note_possible_ram_usage' | 'note_warning_heavy_offload';
+	key:
+		| 'note_optimal_all_in_vram'
+		| 'note_optimal_vram_usage'
+		| 'note_possible_offload'
+		| 'note_possible_ram_usage'
+		| 'note_warning_heavy_offload';
 	params?: { [key: string]: string | number };
 }
 
 // [EN] The final, structured result of an analysis for a single model recipe.
 // [IT] Il risultato finale e strutturato di un'analisi per una singola ricetta di modello.
-export interface AnalysisResult { id: string; recipeName: string; modelType: string; level: AnalysisLevel; totalVramCost: number; totalRamCost: number; quality: number; notes: AnalysisNote[]; repository: string; components: { model: { name: string; cost: number; repository: string; }; quantization: { name: string }; text_encoders: { name: string; cost: number; quantization: string; repository: string; }[]; vae: { name: string; cost: number; quantization: string; repository: string; }; }; }
+export interface AnalysisResult {
+	id: string;
+	recipeName: string;
+	modelType: string;
+	level: AnalysisLevel;
+	totalVramCost: number;
+	totalRamCost: number;
+	quality: number;
+	notes: AnalysisNote[];
+	repository: string;
+	components: {
+		model: { name: string; cost: number; repository: string };
+		quantization: { name: string };
+		text_encoders: { name: string; cost: number; quantization: string; repository: string }[];
+		vaes: { name: string; cost: number; quantization: string; repository: string }[];
+	};
+}
 
 // --- BUSINESS LOGIC CONSTANTS ---
 const VRAM_BUFFER_PERCENTAGE = 1.03; // [EN] 3% safety buffer for VRAM calculations. [IT] 3% di buffer di sicurezza per i calcoli VRAM.
@@ -27,7 +85,7 @@ const ABSOLUTE_MAX_OFFLOAD_RAM_GB = 64; // [EN] Hard cap on how much system RAM 
 const HIGH_END_VRAM_THRESHOLD = 16; // [EN] VRAM amount to consider a GPU "high-end" for filtering models. [IT] Quantità di VRAM per considerare una GPU "high-end" per filtrare i modelli.
 const MIN_MODEL_PRIORITY_FOR_HIGH_END = 10; // [EN] Minimum model priority to show on high-end GPUs. [IT] Priorità minima del modello da mostrare su GPU high-end.
 
-type Champion = { result: AnalysisResult; score: number[]; };
+type Champion = { result: AnalysisResult; score: number[] };
 
 /**
  * [EN] The main analysis function. It iterates through all possible model combinations
@@ -48,9 +106,16 @@ export function analyzeHardware(
 
 	// [EN] Pre-process raw data into more efficient Maps for quick lookups.
 	// [IT] Pre-elabora i dati grezzi in Map più efficienti per ricerche rapide.
-	const baseModels = [...new Map(rawData.models.map((m) => [m.model_id, m])).values()].map((m) => ({ id: m.model_id, name: m.model_name, type: m.model_type as 'Image Generation' | 'Video Generation' | 'LLM' }));
+	const baseModels = [...new Map(rawData.models.map((m) => [m.model_id, m])).values()].map((m) => ({
+		id: m.model_id,
+		name: m.model_name,
+		type: m.model_type as 'Image Generation' | 'Video Generation' | 'LLM'
+	}));
 	const modelReleasesById = new Map<number, ModelRelease[]>();
-	for (const model of rawData.models) { if (!modelReleasesById.has(model.model_id)) modelReleasesById.set(model.model_id, []); modelReleasesById.get(model.model_id)!.push(model); }
+	for (const model of rawData.models) {
+		if (!modelReleasesById.has(model.model_id)) modelReleasesById.set(model.model_id, []);
+		modelReleasesById.get(model.model_id)!.push(model);
+	}
 	// [EN] Create a map of required encoder IDs for each model.
 	// [IT] Crea una mappa degli ID degli encoder richiesti per ogni modello.
 	const requiredEncoderIdsByModelId = new Map<number, number[]>();
@@ -79,24 +144,35 @@ export function analyzeHardware(
 			seenEncoderReleases.add(enc.id);
 		}
 	}
-	// [EN] Create a map of VAE releases for each compatible model, avoiding duplicates.
-	// [IT] Crea una mappa delle versioni di VAE per ogni modello compatibile, evitando duplicati.
-	const vaeReleasesByModelId = new Map<number, VaeRelease[]>();
-	const seenVaeCompatibilities = new Set<string>();
+	// [EN] A model can require MULTIPLE VAEs that are all loaded together (e.g. LTX-2
+	// uses a separate video VAE and audio VAE). We mirror the text-encoder handling:
+	// the distinct VAE ids required by each model, plus every release for each VAE id.
+	// [IT] Un modello può richiedere PIÙ VAE caricati insieme (es. LTX-2 usa un VAE
+	// video e un VAE audio separati). Rispecchiamo la gestione dei text encoder: gli id
+	// dei VAE richiesti da ogni modello e tutte le versioni per ogni id VAE.
+	const requiredVaeIdsByModelId = new Map<number, number[]>();
 	for (const vae of rawData.vaes) {
-		// [EN] Use a composite key to uniquely identify a VAE release for a specific model compatibility.
-		// [IT] Usa una chiave composita per identificare univocamente un rilascio VAE per una specifica compatibilità di modello.
-		const compositeKey = `${vae.id}-${vae.compatible_with_model_id}`;
-		if (seenVaeCompatibilities.has(compositeKey)) {
-			continue;
+		if (!requiredVaeIdsByModelId.has(vae.compatible_with_model_id)) {
+			requiredVaeIdsByModelId.set(vae.compatible_with_model_id, []);
 		}
+		const reqList = requiredVaeIdsByModelId.get(vae.compatible_with_model_id)!;
+		if (!reqList.includes(vae.vae_id)) {
+			reqList.push(vae.vae_id);
+		}
+	}
 
-		if (!vaeReleasesByModelId.has(vae.compatible_with_model_id)) {
-			vaeReleasesByModelId.set(vae.compatible_with_model_id, []);
+	const vaeReleasesByVaeId = new Map<number, VaeRelease[]>();
+	const seenVaeReleases = new Set<number>();
+	for (const vae of rawData.vaes) {
+		if (!vaeReleasesByVaeId.has(vae.vae_id)) {
+			vaeReleasesByVaeId.set(vae.vae_id, []);
 		}
-		
-		vaeReleasesByModelId.get(vae.compatible_with_model_id)!.push(vae);
-		seenVaeCompatibilities.add(compositeKey);
+		// [EN] The raw data has duplicate release rows when a VAE is used by multiple models.
+		// [IT] I dati grezzi hanno righe di rilascio duplicate quando un VAE è usato da più modelli.
+		if (!seenVaeReleases.has(vae.id)) {
+			vaeReleasesByVaeId.get(vae.vae_id)!.push(vae);
+			seenVaeReleases.add(vae.id);
+		}
 	}
 
 	const finalRecommendations: AnalysisResult[] = [];
@@ -108,22 +184,34 @@ export function analyzeHardware(
 
 		const modelReleases = modelReleasesById.get(baseModel.id) ?? [];
 		const requiredEncoderIds = requiredEncoderIdsByModelId.get(baseModel.id) ?? [];
-		const compatibleVaeReleases = vaeReleasesByModelId.get(baseModel.id) ?? [null];
-		const encoderQuantizationPermutations = getQuantizationPermutations(requiredEncoderIds, encoderReleasesById);
+		const requiredVaeIds = requiredVaeIdsByModelId.get(baseModel.id) ?? [];
+		const encoderQuantizationPermutations = getQuantizationPermutations(
+			requiredEncoderIds,
+			encoderReleasesById
+		);
+		const vaeQuantizationPermutations = getQuantizationPermutations(
+			requiredVaeIds,
+			vaeReleasesByVaeId
+		);
 
 		for (const modelRelease of modelReleases) {
 			// [EN] Optimization: skip low-priority models on high-end GPUs.
 			// [IT] Ottimizzazione: salta i modelli a bassa priorità su GPU high-end.
-			if (userVram > HIGH_END_VRAM_THRESHOLD && modelRelease.priority < MIN_MODEL_PRIORITY_FOR_HIGH_END) {
+			if (
+				userVram > HIGH_END_VRAM_THRESHOLD &&
+				modelRelease.priority < MIN_MODEL_PRIORITY_FOR_HIGH_END
+			) {
 				continue;
 			}
 
 			for (const encoderSet of encoderQuantizationPermutations) {
 				if (encoderSet.length !== requiredEncoderIds.length) continue;
 
-				for (const vaeRelease of compatibleVaeReleases) {
+				for (const vaeSet of vaeQuantizationPermutations) {
+					if (vaeSet.length !== requiredVaeIds.length) continue;
+
 					const totalEncoderCost = encoderSet.reduce((sum, enc) => sum + enc.file_size_gb, 0);
-					const vaeCost = vaeRelease?.file_size_gb ?? 0;
+					const vaeCost = vaeSet.reduce((sum, v) => sum + v.file_size_gb, 0);
 					const modelCost = modelRelease.file_size_gb;
 					const totalVramCost = (modelCost + totalEncoderCost + vaeCost) * VRAM_BUFFER_PERCENTAGE;
 
@@ -147,12 +235,24 @@ export function analyzeHardware(
 
 					// [EN] Hierarchical score for comparing results: priority first, then quality, then cost.
 					// [IT] Punteggio gerarchico per confrontare i risultati: prima la priorità, poi la qualità, poi il costo.
-					const avgEncoderPriority = encoderSet.length > 0 ? encoderSet.reduce((sum, e) => sum + e.priority, 0) / encoderSet.length : 20;
-					const avgEncoderQualityScore = encoderSet.length > 0 ? encoderSet.reduce((sum, e) => sum + e.quality_score, 0) / encoderSet.length : 100;
-					const hierarchicalScore = [ modelRelease.priority, modelRelease.quality_score, avgEncoderPriority, avgEncoderQualityScore, -totalVramCost ];
+					const avgEncoderPriority =
+						encoderSet.length > 0
+							? encoderSet.reduce((sum, e) => sum + e.priority, 0) / encoderSet.length
+							: 20;
+					const avgEncoderQualityScore =
+						encoderSet.length > 0
+							? encoderSet.reduce((sum, e) => sum + e.quality_score, 0) / encoderSet.length
+							: 100;
+					const hierarchicalScore = [
+						modelRelease.priority,
+						modelRelease.quality_score,
+						avgEncoderPriority,
+						avgEncoderQualityScore,
+						-totalVramCost
+					];
 
 					const currentResult: AnalysisResult = {
-						id: `${modelRelease.id}-${encoderSet.map((e) => e.id).join('_')}-${vaeRelease?.id ?? 'none'}`,
+						id: `${modelRelease.id}-${encoderSet.map((e) => e.id).join('_')}-${vaeSet.map((v) => v.id).join('_') || 'none'}`,
 						recipeName: `${baseModel.name} (${modelRelease.quantization_name})`,
 						modelType: baseModel.type,
 						level,
@@ -170,12 +270,12 @@ export function analyzeHardware(
 								quantization: e.quantization_name,
 								repository: e.repository
 							})),
-							vae: {
-								name: vaeRelease ? `${vaeRelease.vae_name} (${vaeRelease.quantization_name})` : 'N/A',
-								cost: vaeCost,
-								quantization: vaeRelease?.quantization_name ?? 'N/A',
-								repository: vaeRelease?.repository ?? ''
-							}
+							vaes: vaeSet.map((v) => ({
+								name: `${v.vae_name} (${v.quantization_name})`,
+								cost: v.file_size_gb,
+								quantization: v.quantization_name,
+								repository: v.repository
+							}))
 						}
 					};
 
@@ -187,8 +287,13 @@ export function analyzeHardware(
 						isBetter = true;
 					} else {
 						for (let i = 0; i < hierarchicalScore.length; i++) {
-							if (hierarchicalScore[i] > championToCompare.score[i]) { isBetter = true; break; }
-							if (hierarchicalScore[i] < championToCompare.score[i]) { break; }
+							if (hierarchicalScore[i] > championToCompare.score[i]) {
+								isBetter = true;
+								break;
+							}
+							if (hierarchicalScore[i] < championToCompare.score[i]) {
+								break;
+							}
 						}
 					}
 
@@ -214,11 +319,17 @@ export function analyzeHardware(
 	finalRecommendations.forEach((r) => {
 		if (r.level === 'Verde') {
 			r.notes.push({ key: 'note_optimal_all_in_vram' });
-			r.notes.push({ key: 'note_optimal_vram_usage', params: { used: r.totalVramCost.toFixed(2), total: userVram } });
+			r.notes.push({
+				key: 'note_optimal_vram_usage',
+				params: { used: r.totalVramCost.toFixed(2), total: userVram }
+			});
 		} else {
 			const vramToOffload = r.totalVramCost > userVram ? r.totalVramCost - userVram : 0;
 			r.notes.push({ key: 'note_possible_offload' });
-			r.notes.push({ key: 'note_possible_ram_usage', params: { used: r.totalRamCost.toFixed(2), offloaded: vramToOffload.toFixed(2) } });
+			r.notes.push({
+				key: 'note_possible_ram_usage',
+				params: { used: r.totalRamCost.toFixed(2), offloaded: vramToOffload.toFixed(2) }
+			});
 
 			if (vramToOffload > HEAVY_OFFLOAD_THRESHOLD_GB) {
 				r.notes.push({ key: 'note_warning_heavy_offload' });
@@ -228,13 +339,18 @@ export function analyzeHardware(
 
 	// [EN] Sort final results for display: by type, then level, then quality.
 	// [IT] Ordina i risultati finali per la visualizzazione: per tipo, poi livello, poi qualità.
-	const modelTypeOrder: Record<string, number> = { 'Image Generation': 1, 'Video Generation': 2, 'LLM': 3 };
+	const modelTypeOrder: Record<string, number> = {
+		'Image Generation': 1,
+		'Video Generation': 2,
+		LLM: 3
+	};
 	return finalRecommendations.sort((a, b) => {
 		const typeA = modelTypeOrder[a.modelType] ?? 99;
 		const typeB = modelTypeOrder[b.modelType] ?? 99;
 		if (typeA !== typeB) return typeA - typeB;
 		const levelOrder: Record<AnalysisLevel, number> = { Verde: 1, Giallo: 2, Rosso: 3 };
-		if (levelOrder[a.level] !== levelOrder[b.level]) return levelOrder[a.level] - levelOrder[b.level];
+		if (levelOrder[a.level] !== levelOrder[b.level])
+			return levelOrder[a.level] - levelOrder[b.level];
 		return b.quality - a.quality;
 	});
 }
@@ -246,17 +362,17 @@ export function analyzeHardware(
  * [IT] Una funzione di supporto ricorsiva per generare tutte le possibili
  * combinazioni di quantizzazioni per un dato set di encoder richiesti.
  */
-function getQuantizationPermutations(
-	requiredEncoderIds: number[],
-	releasesById: Map<number, EncoderRelease[]>
-): EncoderRelease[][] {
-	if (requiredEncoderIds.length === 0) return [[]];
-	const firstEncoderId = requiredEncoderIds[0];
-	const remainingEncoderIds = requiredEncoderIds.slice(1);
-	const releasesForFirst = releasesById.get(firstEncoderId) ?? [];
-	const permutationsForRest = getQuantizationPermutations(remainingEncoderIds, releasesById);
+function getQuantizationPermutations<T>(
+	requiredIds: number[],
+	releasesById: Map<number, T[]>
+): T[][] {
+	if (requiredIds.length === 0) return [[]];
+	const firstId = requiredIds[0];
+	const remainingIds = requiredIds.slice(1);
+	const releasesForFirst = releasesById.get(firstId) ?? [];
+	const permutationsForRest = getQuantizationPermutations(remainingIds, releasesById);
 	if (releasesForFirst.length === 0) return [];
-	const newPermutations: EncoderRelease[][] = [];
+	const newPermutations: T[][] = [];
 	for (const release of releasesForFirst) {
 		for (const p of permutationsForRest) {
 			newPermutations.push([release, ...p]);
